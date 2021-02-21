@@ -3,6 +3,10 @@
 Adds a configurable status bar entry to show current runtime stats of monitored Azure ServiceBus entities (queues and subscriptions).
 Currently retrieves and regularly updates the active and deadletter message counts.
 
+Download the extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TimVinkemeier.vsservicebusmonitor).
+
+--------------------------------------
+
 ## Features
 
 - Monitor Azure ServiceBus queues and topics
