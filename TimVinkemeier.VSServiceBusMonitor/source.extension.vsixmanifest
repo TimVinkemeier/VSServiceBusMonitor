@@ -4,6 +4,8 @@
         <Identity Id="TimVinkemeier.VSServiceBusMonitor.749e3b61-2640-4a87-9315-fb491638230a" Version="1.0" Language="en-US" Publisher="Tim Vinkemeier" />
         <DisplayName>Azure ServiceBus Monitor for Visual Studio</DisplayName>
         <Description xml:space="preserve">Status Bar extension for monitoring Azure Service Bus Entity stats in the Visual Studio status bar.</Description>
+        <MoreInfo>https://github.com/TimVinkemeier/VSServiceBusMonitor</MoreInfo>
+        <GettingStartedGuide>https://github.com/TimVinkemeier/VSServiceBusMonitor/blob/master/README.md</GettingStartedGuide>
         <Preview>true</Preview>
     </Metadata>
     <Installation>
