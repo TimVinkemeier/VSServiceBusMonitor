@@ -127,7 +127,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
             ServiceBusMonitorConfigFileWatcher.Instance.Initialize(dte.Solution as Solution2);
 
             // service bus watching
-            ServiceBusMonitor.Instance.Initialize();
+            ServiceBusMonitor.Instance.Initialize(dte as DTE2);
         }
 
         private async Task StopSolutionHandlingAsync(CancellationToken cancellationToken)

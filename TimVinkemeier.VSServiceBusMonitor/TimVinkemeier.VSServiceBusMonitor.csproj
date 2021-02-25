@@ -51,6 +51,7 @@
     <Compile Include="Helpers\VsHelpers.cs" />
     <Compile Include="Models\Config.cs" />
     <Compile Include="Models\DisplayMode.cs" />
+    <Compile Include="Models\GeneralSettings.cs" />
     <Compile Include="Models\Profile.cs" />
     <Compile Include="Models\QueueDefinition.cs" />
     <Compile Include="Models\SubscriptionDefinition.cs" />

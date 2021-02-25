@@ -30,6 +30,7 @@ namespace TimVinkemeier.VSServiceBusMonitor.Models
         public static Config Empty { get; } = new Config
         {
             ActiveProfileName = "MyFirstProfile",
+            DebugProfileName = "MyFirstProfile",
             Profiles = new List<Profile>
             {
                 new Profile
@@ -61,16 +62,31 @@ namespace TimVinkemeier.VSServiceBusMonitor.Models
                             TopicName = "<your-topic-name>",
                             SubscriptionName="<your-second-subscription-name-in-topic-to-monitor>"
                         }
+                    },
+                    Settings = new GeneralSettings
+                    {
+                        RefreshIntervalMillis = 2500
                     }
                 }
+            },
+            DefaultSettings = new GeneralSettings
+            {
+                RefreshIntervalMillis = 5000
             }
         };
 
         [JsonProperty(Required = Required.DisallowNull)]
         public string ActiveProfileName { get; set; }
 
+        public string DebugProfileName { get; set; }
+
+        public GeneralSettings DefaultSettings { get; set; }
+
         [JsonProperty(Required = Required.Always)]
         public IReadOnlyList<Profile> Profiles { get; set; }
+
+        [JsonProperty(Order = 0, PropertyName = "$schema")]
+        public string Schema => "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/TimVinkemeier.VSServiceBusMonitor/configFileSchema.json";
 
         public static Config LoadFromFile(string path)
         {

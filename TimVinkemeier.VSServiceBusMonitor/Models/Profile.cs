@@ -14,6 +14,8 @@ namespace TimVinkemeier.VSServiceBusMonitor.Models
 
         public IReadOnlyList<QueueDefinition> Queues { get; set; }
 
+        public GeneralSettings Settings { get; set; }
+
         public IReadOnlyList<SubscriptionDefinition> Subscriptions { get; set; }
     }
 }

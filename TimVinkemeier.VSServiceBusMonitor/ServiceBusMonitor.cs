@@ -5,6 +5,10 @@ using System.Threading;
 
 using Azure.Messaging.ServiceBus.Administration;
 
+using EnvDTE;
+
+using EnvDTE80;
+
 using Microsoft.VisualStudio.Shell;
 
 using Newtonsoft.Json;
@@ -16,7 +20,9 @@ namespace TimVinkemeier.VSServiceBusMonitor
 {
     public sealed class ServiceBusMonitor
     {
+        private const int DEFAULT_REFRESH_INTERVAL_MILLIS = 5000;
         private Profile _currentlyWatchedProfile;
+        private DTE2 _dte;
         private ServiceBusAdministrationClient _serviceBusClient;
         private Timer _timer;
 
@@ -26,9 +32,12 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
         public static ServiceBusMonitor Instance { get; } = new ServiceBusMonitor();
 
-        public void Initialize()
+        public void Initialize(DTE2 dte)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            _dte = dte;
+
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged += OnConfigurationChanged;
 
             DetermineNewWatchedConfiguration();
@@ -39,6 +48,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged -= OnConfigurationChanged;
+
             StopServiceBusMonitoring();
         }
 
@@ -146,7 +156,9 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
                 Logger.Instance.Log($"Found {currentConfig.Profiles.Count} profiles.");
 
-                if (string.IsNullOrEmpty(currentConfig.ActiveProfileName)
+                var relevantProfileName = GetRelevantProfileName(currentConfig);
+
+                if (string.IsNullOrEmpty(relevantProfileName)
                     && currentConfig.Profiles.Count > 1)
                 {
                     Logger.Instance.Log("No profile selected as active. Please set activeProfileName.");
@@ -154,15 +166,16 @@ namespace TimVinkemeier.VSServiceBusMonitor
                     return;
                 }
 
-                if (string.IsNullOrEmpty(currentConfig.ActiveProfileName)
+                if (string.IsNullOrEmpty(relevantProfileName)
                     && currentConfig.Profiles.Count == 1)
                 {
                     Logger.Instance.Log($"No profile selected as active - however, there is only one named '{currentConfig.Profiles.Single().Name}' - using that.");
                     currentConfig.ActiveProfileName = currentConfig.Profiles.Single().Name;
+                    relevantProfileName = currentConfig.ActiveProfileName;
                     ServiceBusMonitorConfigFileWatcher.Instance.SaveUpdatedCurrentConfig();
                 }
 
-                var activeProfile = currentConfig.Profiles.Single(p => p.Name == currentConfig.ActiveProfileName);
+                var activeProfile = currentConfig.Profiles.Single(p => p.Name == relevantProfileName);
                 _currentlyWatchedProfile = JsonConvert.DeserializeObject<Profile>(JsonConvert.SerializeObject(activeProfile));
             }
             catch (Exception ex)
@@ -173,6 +186,15 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
         }
 
+        private int GetRefreshInterval(Profile currentlyWatchedProfile)
+            => currentlyWatchedProfile.Settings?.RefreshIntervalMillis
+                ?? (ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig?.DefaultSettings?.RefreshIntervalMillis ?? DEFAULT_REFRESH_INTERVAL_MILLIS);
+
+        private string GetRelevantProfileName(Config currentConfig)
+            => _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgBreakMode || _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgRunMode
+                ? (!string.IsNullOrEmpty(currentConfig.DebugProfileName) ? currentConfig.DebugProfileName : currentConfig.ActiveProfileName)
+                : currentConfig.ActiveProfileName;
+
         private async void OnConfigurationChanged()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -180,6 +202,11 @@ namespace TimVinkemeier.VSServiceBusMonitor
             StopServiceBusMonitoring();
             DetermineNewWatchedConfiguration();
             StartServiceBusMonitoring();
+        }
+
+        private void OnDebuggerContextChanged(Process NewProcess, Program NewProgram, EnvDTE.Thread NewThread, StackFrame NewStackFrame)
+        {
+            throw new NotImplementedException();
         }
 
         private void StartServiceBusMonitoring()
@@ -201,7 +228,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
                 _serviceBusClient = new ServiceBusAdministrationClient(_currentlyWatchedProfile.ConnectionString);
 
-                _timer.Change(0, 5000);
+                _timer.Change(0, GetRefreshInterval(_currentlyWatchedProfile));
             }
             catch (Exception ex)
             {
@@ -250,6 +277,16 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
                 var (text, tooltip, isActive) = FormatForDisplay(queuesData, subscriptionData, profile, updateTime);
                 ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(isActive, text, tooltip);
+
+                // check for change of profiles
+                var relevantProfileName = GetRelevantProfileName(ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig);
+                if (_currentlyWatchedProfile.Name != relevantProfileName)
+                {
+                    Logger.Instance.Log($"Relevant profile changed to '{relevantProfileName}' - switching...");
+                    StopServiceBusMonitoring();
+                    DetermineNewWatchedConfiguration();
+                    StartServiceBusMonitoring();
+                }
             }
             catch (Exception ex)
             {
