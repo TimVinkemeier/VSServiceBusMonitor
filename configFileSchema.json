@@ -4,11 +4,11 @@
     "profiles",
     "$schema"
   ],
-  "title": "This schema describes the configuration file for the ServiceBus Monitor for Visual Studio extension",
+  "description": "This schema describes the configuration file for the ServiceBus Monitor for Visual Studio extension",
   "type": "object",
   "properties": {
     "activeProfileName": {
-      "title": "The currently active profile name",
+      "description": "The currently active profile name",
       "type": "string",
       "examples": [
         "MyProfile"
@@ -16,7 +16,7 @@
       "minLength": 1
     },
     "debugProfileName": {
-      "title": "A profile name to use during debugging sessions.",
+      "description": "A profile name to use during debugging sessions.",
       "type": "string",
       "examples": [
         "MyDebugProfile"
@@ -24,7 +24,7 @@
       "minLength": 1
     },
     "profiles": {
-      "title": "The profile definitions",
+      "description": "The profile definitions",
       "uniqueItems": true,
       "type": "array",
       "items": {
@@ -34,17 +34,17 @@
               "connectionString",
               "name"
             ],
-            "title": "The profile",
+            "description": "The profile",
             "type": "object",
             "properties": {
               "connectionString": {
-                "title": "The ServiceBus connection string. Please ensure that it has 'Manage'-permissions.",
+                "description": "The ServiceBus connection string. Please ensure that it has 'Manage'-permissions.",
                 "pattern": "^Endpoint=(.*);SharedAccessKeyName=(.*);SharedAccessKey=(.*)$",
                 "type": "string",
                 "minLength": 1
               },
               "name": {
-                "title": "The name of the profile",
+                "description": "The name of the profile",
                 "type": "string",
                 "examples": [
                   "MyProfile"
@@ -52,7 +52,7 @@
                 "minLength": 1
               },
               "queues": {
-                "title": "The Queues to monitor",
+                "description": "The Queues to monitor",
                 "uniqueItems": true,
                 "minItems": 1,
                 "type": "array",
@@ -62,7 +62,7 @@
                       "required": [
                         "queueName"
                       ],
-                      "title": "The Queue definition",
+                      "description": "The Queue definition",
                       "type": "object",
                       "properties": {
                         "display": {
@@ -72,11 +72,11 @@
                             "onlyDlq",
                             "tooltipOnly"
                           ],
-                          "title": "The display mode for this entity",
+                          "description": "The display mode for this entity",
                           "type": "string"
                         },
                         "queueName": {
-                          "title": "The name of the queue to monitor.",
+                          "description": "The name of the queue to monitor.",
                           "type": "string",
                           "examples": [
                             "my-queue-name"
@@ -84,7 +84,7 @@
                           "minLength": 1
                         },
                         "shortName": {
-                          "title": "A short name to display instead of the queueName.",
+                          "description": "A short name to display instead of the queueName.",
                           "type": "string",
                           "examples": [
                             "my-queue"
@@ -97,7 +97,7 @@
                 }
               },
               "subscriptions": {
-                "title": "The subscriptions to monitor",
+                "description": "The subscriptions to monitor",
                 "uniqueItems": true,
                 "type": "array",
                 "items": {
@@ -107,7 +107,7 @@
                         "subscriptionName",
                         "topicName"
                       ],
-                      "title": "The subscription definition",
+                      "description": "The subscription definition",
                       "type": "object",
                       "properties": {
                         "display": {
@@ -117,11 +117,11 @@
                             "onlyDlq",
                             "tooltipOnly"
                           ],
-                          "title": "The display mode for this entity",
+                          "description": "The display mode for this entity",
                           "type": "string"
                         },
                         "subscriptionName": {
-                          "title": "The name of the subscription to monitor.",
+                          "description": "The name of the subscription to monitor.",
                           "type": "string",
                           "examples": [
                             "my-subscription-name"
@@ -129,7 +129,7 @@
                           "minLength": 1
                         },
                         "topicName": {
-                          "title": "The name of the topic that the subscription resides in.",
+                          "description": "The name of the topic that the subscription resides in.",
                           "type": "string",
                           "examples": [
                             "my-topic-name"
@@ -137,7 +137,7 @@
                           "minLength": 1
                         },
                         "shortName": {
-                          "title": "A short name to display instead of the topicName and subscriptionName.",
+                          "description": "A short name to display instead of the topicName and subscriptionName.",
                           "type": "string",
                           "examples": [
                             "my-sub"
@@ -151,11 +151,11 @@
               },
               "settings": {
                 "type": "object",
-                "title": "The settings for the profile",
+                "description": "The settings for the profile",
                 "properties": {
                   "refreshIntervalMillis": {
                     "type": "number",
-                    "title": "The refresh interval in milliseconds. Please note that sub-second intervals may degrade performance.",
+                    "description": "The refresh interval in milliseconds. Please note that sub-second intervals may degrade performance.",
                     "examples": [
                       2000
                     ]
@@ -168,11 +168,11 @@
       }
     },
     "profileDefaultSettings": {
-      "title": "Default settings for profiles",
+      "description": "Default settings for profiles",
       "type": "object",
       "properties": {
         "refreshIntervalMillis": {
-          "title": "The refresh interval in milliseconds. Please note that sub-second intervals may degrade performance.",
+          "description": "The refresh interval in milliseconds. Please note that sub-second intervals may degrade performance.",
           "minimum": 1,
           "type": "number",
           "examples": [
@@ -182,11 +182,11 @@
       }
     },
     "settings": {
-      "title": "General settings",
+      "description": "General settings",
       "type": "object",
       "properties": {
         "noColorization": {
-          "title": "If true, colorization features are turned off.",
+          "description": "If true, colorization features are turned off.",
           "type": "boolean"
         }
       }
@@ -195,7 +195,7 @@
       "enum": [
         "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/configFileSchema.json"
       ],
-      "title": "The schema reference",
+      "description": "The schema reference",
       "type": "string"
     }
   }
