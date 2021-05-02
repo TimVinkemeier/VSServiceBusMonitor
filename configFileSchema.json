@@ -1,0 +1,113 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/TimVinkemeier.VSServiceBusMonitor/configFileSchema.json"
+      ]
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "noColorization": {
+          "type": "boolean"
+        }
+      }
+    },
+    "profileDefaultSettings": {
+      "type": "object",
+      "properties": {
+        "refreshIntervalMillis": {
+          "type": "number"
+        }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "connectionString": {
+            "type": "string",
+            "pattern": "^Endpoint=(.*);SharedAccessKeyName=(.*);SharedAccessKey=(.*)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "queues": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "display": {
+                  "type": "string",
+                  "enum": [
+                    "always",
+                    "default",
+                    "onlyDlq",
+                    "tooltipOnly"
+                  ]
+                },
+                "queueName": {
+                  "type": "string"
+                },
+                "shortName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "queueName"
+              ]
+            }
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "display": {
+                  "type": "string",
+                  "enum": [
+                    "always",
+                    "default",
+                    "onlyDlq",
+                    "tooltipOnly"
+                  ]
+                },
+                "subscriptionName": {
+                  "type": "string"
+                },
+                "topicName": {
+                  "type": "string"
+                },
+                "shortName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "subscriptionName",
+                "topicName"
+              ]
+            }
+          }
+        },
+        "required": [
+          "connectionString",
+          "name"
+        ]
+      }
+    },
+    "debugProfileName": {
+      "type": "string"
+    },
+    "activeProfileName": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "profiles"
+  ]
+}
