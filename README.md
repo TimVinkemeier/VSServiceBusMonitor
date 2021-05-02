@@ -44,12 +44,15 @@ The configured ServiceBus entities are shown in the status bar with their active
 Depending on your `display` settings, monitored entities are shown in the status bar `always` (i.e. regardless of their data), `default` (i.e. if they have any value > 0), `onlyDlq` (i.e. if they contain a DLQ message) or `tooltipOnly` (i.e. never shown in the status bar).
 
 **Normal view with `always` setting**
+
 ![Normal view](images/status-bar-example-01.png)
 
 **Normal view with `default` setting and no data > 0**
+
 ![Normal view without data](images/status-bar-example-02.png)
 
 **Normal view with `default` setting and one data > 0**
+
 ![Normal view with only some data](images/status-bar-example-03.png)
 
 ### 3.2 Colorization on alert states
@@ -57,9 +60,11 @@ Depending on your `display` settings, monitored entities are shown in the status
 Depending on your settings, the extension changes the background of the status bar entry to signal DLQ messages. The background becomes red on DLQs on visible entities and orange on DLQs on entities that are shown `tooltipOnly`.
 
 **Alert View**
+
 ![Alert view](images/status-bar-example-alert.png)
 
 **Warning View**
+
 ![Warning view](images/status-bar-example-warning.png)
 
 ### 3.3 Tooltip
@@ -67,6 +72,7 @@ Depending on your settings, the extension changes the background of the status b
 The tooltip shows the data for all monitored entities, as well as the currently active profile and the last refresh time.
 
 **Tooltip**
+
 ![Tooltip](images/status-bar-example-tooltip.png)
 
 ### 3.4 Context Menu
@@ -74,9 +80,11 @@ The tooltip shows the data for all monitored entities, as well as the currently 
 Via the context menu, you can temporarily pause the polling of data as well as quickly open the current configuration file.
 
 **Context Menu**
+
 ![Context Menu](images/status-bar-example-contextmenu.png)
 
 **Paused View**
+
 ![Paused View](images/status-bar-example-paused.png)
 
 ## 4 Configuration
