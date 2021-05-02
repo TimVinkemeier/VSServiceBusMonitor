@@ -12,49 +12,45 @@ namespace TimVinkemeier.VSServiceBusMonitor
 {
     public class ServiceBusMonitorStatusBarController
     {
-        private readonly IComponentModel _compositionService;
-        private readonly DTE2 _dte;
-        private readonly IAsyncServiceProvider _serviceProvider;
-
         private ServiceBusMonitorStatusBarHost _status;
 
-        private ServiceBusMonitorStatusBarController(IAsyncServiceProvider provider, DTE2 dte, IComponentModel compositionService)
+        private ServiceBusMonitorStatusBarController(DTE2 dte, IComponentModel compositionService)
         {
-            _dte = dte;
-            _compositionService = compositionService;
-            _serviceProvider = provider;
+            DTE = dte;
+            CompositionService = compositionService;
         }
 
-        public static ServiceBusMonitorStatusBarController Instance
-        {
-            get;
-            private set;
-        }
+        public static ServiceBusMonitorStatusBarController Instance { get; private set; }
 
-        public IComponentModel CompositionService => _compositionService;
+        public IComponentModel CompositionService { get; }
 
-        public DTE2 DTE => _dte;
-
-        private Logger Logger => Logger.Instance;
+        public DTE2 DTE { get; }
 
         public static async System.Threading.Tasks.Task InitializeAsync(IAsyncServiceProvider provider, CancellationToken cancellationToken)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var dte = await provider.GetDteAsync(cancellationToken);
-            var compositionService = await provider.GetServiceAsync<SComponentModel, IComponentModel>(cancellationToken);
+            var dte = await provider.GetDteAsync(cancellationToken).ConfigureAwait(true);
+            var compositionService = await provider.GetServiceAsync<SComponentModel, IComponentModel>(cancellationToken).ConfigureAwait(true);
 
-            Instance = new ServiceBusMonitorStatusBarController(provider, dte, compositionService);
+            Instance = new ServiceBusMonitorStatusBarController(dte, compositionService);
             var mainWindow = dte.DTE.MainWindow;
             await System.Threading.Tasks.Task.WhenAll(
-                ThreadHelper.JoinableTaskFactory.StartOnIdle(Instance.CreateStatusBarItem).JoinAsync());
+                ThreadHelper.JoinableTaskFactory.StartOnIdle(Instance.CreateStatusBarItem).JoinAsync()).ConfigureAwait(false);
         }
 
-        public void UpdateStatusBar(bool isActive, string text, string tooltip = default)
+        public void UpdateStatusBar(bool isActive, string text, string tooltip = default, BackgroundStyle backgroundStyle = default)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             _status.IsActive = isActive;
             _status.Text = text;
             _status.ToolTip = tooltip;
+            _status.BackgroundStyle = backgroundStyle;
+        }
+
+        internal void OpenConfigFile()
+        {
+            var path = ConfigFileHelpers.GetConfigFilePath((Solution2)DTE.Solution);
+            VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, path);
         }
 
         private void CreateStatusBarItem()

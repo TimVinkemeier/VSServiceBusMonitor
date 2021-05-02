@@ -69,9 +69,13 @@ namespace TimVinkemeier.VSServiceBusMonitor.Models
                     }
                 }
             },
-            DefaultSettings = new GeneralSettings
+            ProfileDefaultSettings = new GeneralSettings
             {
                 RefreshIntervalMillis = 5000
+            },
+            Settings = new ConfigSettings
+            {
+                NoColorization = false
             }
         };
 
@@ -80,13 +84,15 @@ namespace TimVinkemeier.VSServiceBusMonitor.Models
 
         public string DebugProfileName { get; set; }
 
-        public GeneralSettings DefaultSettings { get; set; }
+        public GeneralSettings ProfileDefaultSettings { get; set; }
 
         [JsonProperty(Required = Required.Always)]
         public IReadOnlyList<Profile> Profiles { get; set; }
 
         [JsonProperty(Order = 0, PropertyName = "$schema")]
         public string Schema => "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/TimVinkemeier.VSServiceBusMonitor/configFileSchema.json";
+
+        public ConfigSettings Settings { get; set; }
 
         public static Config LoadFromFile(string path)
         {

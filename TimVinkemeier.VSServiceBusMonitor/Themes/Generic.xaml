@@ -1,10 +1,12 @@
 ﻿<ResourceDictionary
+    x:Class="TimVinkemeier.VSServiceBusMonitor.Themes.Generic"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
     xmlns:vssbmonitor="clr-namespace:TimVinkemeier.VSServiceBusMonitor"
+    x:ClassModifier="public"
     mc:Ignorable="d">
 
     <Style TargetType="{x:Type vssbmonitor:ServiceBusMonitorStatusBarHost}">
@@ -40,15 +42,32 @@
                                 VerticalAlignment="Center"
                                 Text="{TemplateBinding Text}" />
                         </Grid>
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem
+                                    Checked="ToggleActivity_Checked"
+                                    Header="_Enabled"
+                                    IsCheckable="True"
+                                    IsChecked="True"
+                                    Unchecked="ToggleActivity_Unchecked" />
+                                <Separator />
+                                <MenuItem Click="OpenConfigFile_Click" Header="_Open Config File" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsActive" Value="True">
                             <Setter TargetName="indicator" Property="Fill" Value="{Binding Path=Foreground, RelativeSource={RelativeSource TemplatedParent}}" />
-                            <Setter TargetName="text" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsActive" Value="False">
                             <Setter TargetName="indicator" Property="Fill" Value="{Binding Path=Background, RelativeSource={RelativeSource TemplatedParent}}" />
-                            <Setter TargetName="text" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="text" Property="FontStyle" Value="Italic" />
+                        </Trigger>
+                        <Trigger Property="BackgroundStyle" Value="Warning">
+                            <Setter TargetName="grid" Property="Background" Value="Orange" />
+                        </Trigger>
+                        <Trigger Property="BackgroundStyle" Value="Alert">
+                            <Setter TargetName="grid" Property="Background" Value="Red" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

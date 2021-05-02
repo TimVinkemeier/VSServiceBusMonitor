@@ -32,6 +32,8 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
         public static ServiceBusMonitor Instance { get; } = new ServiceBusMonitor();
 
+        public bool IsEnabled { get; set; } = true;
+
         public void Initialize(DTE2 dte)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -50,51 +52,6 @@ namespace TimVinkemeier.VSServiceBusMonitor
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged -= OnConfigurationChanged;
 
             StopServiceBusMonitoring();
-        }
-
-        private static (string Text, string Tooltip, bool IsActive) FormatForDisplay(
-            List<(QueueDefinition Definition, QueueRuntimeProperties Data)> queuesData,
-            List<(SubscriptionDefinition Definition, SubscriptionRuntimeProperties Data)> subscriptionData,
-            Profile profile,
-            DateTime updateTime)
-        {
-            var queuesToShow = queuesData
-                .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
-                .Select(q => FormatForDisplay(GetDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
-                .ToList();
-
-            var subscriptionsToShow = subscriptionData
-                .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
-                .Select(q => FormatForDisplay(GetDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
-                .ToList();
-
-            var totalCount = queuesData.Count + subscriptionData.Count;
-            var shownCount = queuesToShow.Count + subscriptionsToShow.Count;
-            var monitoredNotShownCount = totalCount - shownCount;
-
-            var text = string.Join(" | ", queuesToShow.Concat(subscriptionsToShow).OrderBy(d => d)) + (monitoredNotShownCount > 0 ? $" | + {monitoredNotShownCount}" : string.Empty);
-
-            if (shownCount == 0)
-            {
-                text = $"{totalCount} entities monitored";
-            }
-
-            var dataForTooltip = queuesData
-                .Select(q => FormatForDisplay(GetLongDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
-                .Concat(subscriptionData
-                    .Select(q => FormatForDisplay(GetLongDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount)))
-                .ToList();
-
-            var formattedData = string.Join("\r\n", dataForTooltip.OrderBy(d => d));
-
-            if (dataForTooltip.Count == 0)
-            {
-                formattedData = "No entities monitored.";
-            }
-
-            var tooltip = $"Service Bus Monitor\r\nActive Profile: {profile.Name}\r\n\r\n{formattedData}\r\n\r\nLast updated: {updateTime:G}";
-
-            return (text, tooltip, true);
         }
 
         private static string FormatForDisplay(string displayName, long activeMessageCount, long deadLetterMessageCount)
@@ -186,9 +143,79 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
         }
 
+        private (string Text, string Tooltip, bool IsActive, BackgroundStyle BackgroundStyle) FormatForDisplay(
+                                                                    List<(QueueDefinition Definition, QueueRuntimeProperties Data)> queuesData,
+            List<(SubscriptionDefinition Definition, SubscriptionRuntimeProperties Data)> subscriptionData,
+            Profile profile,
+            DateTime updateTime)
+        {
+            // calculate statusbar text
+            var queuesToShow = queuesData
+                .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                .Select(q => FormatForDisplay(GetDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                .ToList();
+
+            var subscriptionsToShow = subscriptionData
+                .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                .Select(q => FormatForDisplay(GetDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                .ToList();
+
+            var totalCount = queuesData.Count + subscriptionData.Count;
+            var shownCount = queuesToShow.Count + subscriptionsToShow.Count;
+            var monitoredNotShownCount = totalCount - shownCount;
+
+            var text = string.Join(" | ", queuesToShow.Concat(subscriptionsToShow).OrderBy(d => d)) + (monitoredNotShownCount > 0 ? $" | + {monitoredNotShownCount}" : string.Empty);
+
+            if (shownCount == 0)
+            {
+                text = $"{totalCount} entities monitored";
+            }
+
+            // calculate tooltip text
+            var dataForTooltip = queuesData
+                .Select(q => FormatForDisplay(GetLongDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                .Concat(subscriptionData
+                    .Select(q => FormatForDisplay(GetLongDisplayName(q.Definition), q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount)))
+                .ToList();
+
+            var formattedData = string.Join("\r\n", dataForTooltip.OrderBy(d => d));
+
+            if (dataForTooltip.Count == 0)
+            {
+                formattedData = "No entities monitored.";
+            }
+
+            var tooltip = $"Service Bus Monitor\r\nActive Profile: {profile.Name}\r\n\r\n{formattedData}\r\n\r\nLast updated: {updateTime:G}";
+
+            // determine backgroundstyle
+            var backgroundStyle = BackgroundStyle.Normal;
+            if (ServiceBusMonitorConfigFileWatcher.Instance?.CurrentConfig?.Settings?.NoColorization != true)
+            {
+                var anyDataToShowHasDlq = queuesData
+                        .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                        .Any(q => q.Data.DeadLetterMessageCount > 0)
+                    || subscriptionData
+                        .Where(q => ShouldBeShown(q.Definition.Display, q.Data.ActiveMessageCount, q.Data.DeadLetterMessageCount))
+                        .Any(q => q.Data.DeadLetterMessageCount > 0);
+
+                var anyDataHasDlq = queuesData
+                        .Any(q => q.Data.DeadLetterMessageCount > 0)
+                    || subscriptionData
+                        .Any(q => q.Data.DeadLetterMessageCount > 0);
+
+                backgroundStyle = anyDataToShowHasDlq
+                    ? BackgroundStyle.Alert
+                    : (anyDataHasDlq
+                        ? BackgroundStyle.Warning
+                        : BackgroundStyle.Normal);
+            }
+
+            return (text, tooltip, IsEnabled, backgroundStyle);
+        }
+
         private int GetRefreshInterval(Profile currentlyWatchedProfile)
             => currentlyWatchedProfile.Settings?.RefreshIntervalMillis
-                ?? (ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig?.DefaultSettings?.RefreshIntervalMillis ?? DEFAULT_REFRESH_INTERVAL_MILLIS);
+                ?? (ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig?.ProfileDefaultSettings?.RefreshIntervalMillis ?? DEFAULT_REFRESH_INTERVAL_MILLIS);
 
         private string GetRelevantProfileName(Config currentConfig)
             => _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgBreakMode || _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgRunMode
@@ -202,11 +229,6 @@ namespace TimVinkemeier.VSServiceBusMonitor
             StopServiceBusMonitoring();
             DetermineNewWatchedConfiguration();
             StartServiceBusMonitoring();
-        }
-
-        private void OnDebuggerContextChanged(Process NewProcess, Program NewProgram, EnvDTE.Thread NewThread, StackFrame NewStackFrame)
-        {
-            throw new NotImplementedException();
         }
 
         private void StartServiceBusMonitoring()
@@ -256,27 +278,42 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
         private async void UpdateServiceBusData()
         {
+            if (ServiceBusMonitorStatusBarController.Instance == null)
+            {
+                return;
+            }
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var updateTime = DateTime.Now;
             var profile = _currentlyWatchedProfile;
             try
             {
+                if (!IsEnabled)
+                {
+                    ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(false, "Paused", "VS ServiceBus Monitor is paused\r\n\r\nRe-activate it via the context menu.", BackgroundStyle.Normal);
+                    return;
+                }
+
                 var queuesData = new List<(QueueDefinition, QueueRuntimeProperties)>();
                 var subscriptionData = new List<(SubscriptionDefinition, SubscriptionRuntimeProperties)>();
                 foreach (var queueDefinition in profile.Queues ?? Enumerable.Empty<QueueDefinition>())
                 {
-                    var data = await _serviceBusClient.GetQueueRuntimePropertiesAsync(queueDefinition.QueueName);
+                    var data = await _serviceBusClient
+                        .GetQueueRuntimePropertiesAsync(queueDefinition.QueueName)
+                        .ConfigureAwait(true);
                     queuesData.Add((queueDefinition, data));
                 }
 
                 foreach (var subscriptionDefinition in profile.Subscriptions ?? Enumerable.Empty<SubscriptionDefinition>())
                 {
-                    var data = await _serviceBusClient.GetSubscriptionRuntimePropertiesAsync(subscriptionDefinition.TopicName, subscriptionDefinition.SubscriptionName);
+                    var data = await _serviceBusClient
+                        .GetSubscriptionRuntimePropertiesAsync(subscriptionDefinition.TopicName, subscriptionDefinition.SubscriptionName)
+                        .ConfigureAwait(true);
                     subscriptionData.Add((subscriptionDefinition, data));
                 }
 
-                var (text, tooltip, isActive) = FormatForDisplay(queuesData, subscriptionData, profile, updateTime);
-                ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(isActive, text, tooltip);
+                var (text, tooltip, isActive, backgroundStyle) = FormatForDisplay(queuesData, subscriptionData, profile, updateTime);
+                ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(isActive, text, tooltip, backgroundStyle);
 
                 // check for change of profiles
                 var relevantProfileName = GetRelevantProfileName(ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig);

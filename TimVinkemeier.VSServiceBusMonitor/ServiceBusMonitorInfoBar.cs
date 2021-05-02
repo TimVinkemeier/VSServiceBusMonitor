@@ -86,7 +86,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
 
             _uiElement.Advise(this, out _);
-            ToolWindowPane solutionExplorer = GetSolutionExplorerPane();
+            var solutionExplorer = GetSolutionExplorerPane();
 
             if (solutionExplorer != null)
             {
@@ -103,7 +103,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
             var slnExplorerGuid = new Guid(ToolWindowGuids80.SolutionExplorer);
 
-            if (ErrorHandler.Succeeded(uiShell.FindToolWindow((uint)__VSFINDTOOLWIN.FTW_fForceCreate, ref slnExplorerGuid, out IVsWindowFrame frame)))
+            if (ErrorHandler.Succeeded(uiShell.FindToolWindow((uint)__VSFINDTOOLWIN.FTW_fForceCreate, ref slnExplorerGuid, out var frame)))
             {
                 if (ErrorHandler.Succeeded(frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out var pane)))
                 {
@@ -117,7 +117,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
         private async Task<bool> TryCreateInfoBarUIAsync(IVsInfoBar infoBar)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            IVsInfoBarUIFactory infoBarUIFactory = await AsyncServiceProvider.GlobalProvider.GetServiceAsync<SVsInfoBarUIFactory, IVsInfoBarUIFactory>();
+            var infoBarUIFactory = await AsyncServiceProvider.GlobalProvider.GetServiceAsync<SVsInfoBarUIFactory, IVsInfoBarUIFactory>();
 
             _uiElement = infoBarUIFactory.CreateInfoBar(infoBar);
             return _uiElement != null;
