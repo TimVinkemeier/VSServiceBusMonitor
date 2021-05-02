@@ -149,7 +149,7 @@ The following keys can be specified:
 ### 4.5 Complete example
 
 The following example file shows a complete configuration.
-Note that the inline comments are only explanatory and may not be contained in your settings file.
+Note that it defines a schema file. In popular editors (for example Visual Studio), you get validation and autocomplete support based on that schema.
 
 ```json
 {
@@ -210,6 +210,6 @@ Note that the inline comments are only explanatory and may not be contained in y
   "settings": {
     "noColorization": false
   },
-  "$schema": "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/TimVinkemeier.VSServiceBusMonitor/configFileSchema.json"
+  "$schema": "https://raw.githubusercontent.com/TimVinkemeier/VSServiceBusMonitor/master/configFileSchema.json"
 }
 ```
