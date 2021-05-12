@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
 using EnvDTE;
@@ -16,6 +19,7 @@ using Newtonsoft.Json;
 
 using TimVinkemeier.VSServiceBusMonitor.Helpers;
 using TimVinkemeier.VSServiceBusMonitor.Models;
+using TimVinkemeier.VSServiceBusMonitor.Models.Configuration;
 
 namespace TimVinkemeier.VSServiceBusMonitor
 {
@@ -24,6 +28,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
         private const int DEFAULT_REFRESH_INTERVAL_MILLIS = 5000;
         private Profile _currentlyWatchedProfile;
         private DTE2 _dte;
+        private IReadOnlyList<ServiceBusEntityStatus> _latestStatuses = new List<ServiceBusEntityStatus>();
         private ServiceBusAdministrationClient _serviceBusClient;
         private Timer _timer;
 
@@ -34,6 +39,8 @@ namespace TimVinkemeier.VSServiceBusMonitor
         public static ServiceBusMonitor Instance { get; } = new ServiceBusMonitor();
 
         public bool IsEnabled { get; set; } = true;
+
+        public IReadOnlyList<ServiceBusEntityStatus> LatestStatuses => _latestStatuses;
 
         public async System.Threading.Tasks.Task InitializeAsync(DTE2 dte)
         {
@@ -50,6 +57,96 @@ namespace TimVinkemeier.VSServiceBusMonitor
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged -= OnConfigurationChanged;
 
             await StopServiceBusMonitoringAsync().ConfigureAwait(false);
+        }
+
+        internal async System.Threading.Tasks.Task PurgeServiceBusEntityAsync(string entityName, bool purgeDlqInsteadOfMessages, string topicName = null)
+        {
+            var serviceBusEntityName = (topicName == null ? "" : topicName + " > ") + entityName;
+
+            try
+            {
+                // user confirmation
+                var result = MessageBox.Show($"Do you really want to purge all {(purgeDlqInsteadOfMessages ? "DLQ " : "")}messages from entity '{serviceBusEntityName}'?",
+                    "ServiceBus Monitor for Visual Studio",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.No);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    await Logger.Instance
+                        .LogAsync($"{(purgeDlqInsteadOfMessages ? "DLQ purge" : "Purge")} of entity '{serviceBusEntityName}' aborted by user.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                // check if entity exists
+                var response = topicName == null
+                    ? await _serviceBusClient.QueueExistsAsync(entityName).ConfigureAwait(false)
+                    : await _serviceBusClient.SubscriptionExistsAsync(topicName, entityName).ConfigureAwait(false);
+                var entityFound = response.Value;
+
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                if (!entityFound)
+                {
+                    MessageBox.Show($"Could not find entity '{serviceBusEntityName}' for purging.",
+                        "ServiceBus Monitor for Visual Studio",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                await Logger.Instance
+                    .LogAsync($"Starting {(purgeDlqInsteadOfMessages ? "DLQ " : "")}purge of entity '{serviceBusEntityName}'...")
+                    .ConfigureAwait(false);
+                var stopwatch = Stopwatch.StartNew();
+                var purgedCount = 0;
+                await System.Threading.Tasks.Task
+                    .Run(async () =>
+                    {
+                        ServiceBusClient client = null;
+                        try
+                        {
+                            client = new ServiceBusClient(_currentlyWatchedProfile.ConnectionString);
+                            var options = new ServiceBusReceiverOptions
+                            {
+                                PrefetchCount = 50,
+                                ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
+                                SubQueue = purgeDlqInsteadOfMessages ? SubQueue.DeadLetter : SubQueue.None
+                            };
+
+                            var taskCount = 20;
+                            var tasks = Enumerable.Range(1, taskCount)
+                                .Select(_ => System.Threading.Tasks.Task.Run(() => PurgeUsingClientAsync(client, options, entityName, topicName)))
+                                .ToList();
+
+                            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+
+                            purgedCount = tasks.Select(t => t.Result).Sum();
+                        }
+                        finally
+                        {
+                            if (client != null)
+                            {
+                                await client.DisposeAsync().ConfigureAwait(false);
+                            }
+                        }
+                    })
+                    .ConfigureAwait(true);
+
+                stopwatch.Stop();
+                await Logger.Instance
+                    .LogAsync($"{(purgeDlqInsteadOfMessages ? "DLQ purge" : "Purge")} of entity '{serviceBusEntityName}' completed - purged {purgedCount} messages in {stopwatch.Elapsed:g} ({(purgedCount / stopwatch.Elapsed.TotalSeconds):N2} messages/second)")
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                MessageBox.Show($"Could not purge entity '{serviceBusEntityName}'. (Exception message: {ex.Message})",
+                    "ServiceBus Monitor for Visual Studio",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         private static string FormatForDisplay(string displayName, long activeMessageCount, long deadLetterMessageCount)
@@ -238,6 +335,34 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
         }
 
+        private async Task<int> PurgeUsingClientAsync(ServiceBusClient client, ServiceBusReceiverOptions options, string entityName, string topicName)
+        {
+            var purgedCount = 0;
+            ServiceBusReceiver receiver = null;
+            try
+            {
+                receiver = topicName == null
+                    ? client.CreateReceiver(entityName, options)
+                    : client.CreateReceiver(topicName, entityName, options);
+
+                IReadOnlyList<ServiceBusReceivedMessage> messages;
+                do
+                {
+                    messages = await receiver.ReceiveMessagesAsync(1000, TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+                    purgedCount += messages.Count;
+                } while (messages.Count > 0);
+            }
+            finally
+            {
+                if (receiver != null)
+                {
+                    await receiver.CloseAsync().ConfigureAwait(false);
+                }
+            }
+
+            return purgedCount;
+        }
+
         private async System.Threading.Tasks.Task StartServiceBusMonitoringAsync()
         {
             if (_currentlyWatchedProfile is null)
@@ -298,12 +423,12 @@ namespace TimVinkemeier.VSServiceBusMonitor
                     return;
                 }
 
+                // load runtime properties (async in background thread)
                 var queuesData = new List<(QueueDefinition, QueueRuntimeProperties)>();
                 var subscriptionData = new List<(SubscriptionDefinition, SubscriptionRuntimeProperties)>();
 
                 await System.Threading.Tasks.Task.Run(async () =>
                 {
-                    var updateThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
                     foreach (var queueDefinition in profile.Queues ?? Enumerable.Empty<QueueDefinition>())
                     {
                         var data = await _serviceBusClient
@@ -321,8 +446,27 @@ namespace TimVinkemeier.VSServiceBusMonitor
                     }
                 }).ConfigureAwait(false);
 
+                // build and show display data and create status values
                 var (text, tooltip, isActive, backgroundStyle) = FormatForDisplay(queuesData, subscriptionData, profile, updateTime);
                 await ServiceBusMonitorStatusBarController.Instance.UpdateStatusBarAsync(isActive, text, tooltip, backgroundStyle).ConfigureAwait(false);
+                _latestStatuses = queuesData
+                    .Select(qd => new QueueStatus
+                    {
+                        ActiveCount = qd.Item2.ActiveMessageCount,
+                        DeadletterCount = qd.Item2.DeadLetterMessageCount,
+                        EntityName = qd.Item1.QueueName,
+                        ShortDisplayName = qd.Item1.ShortName ?? qd.Item1.QueueName
+                    })
+                    .Cast<ServiceBusEntityStatus>()
+                    .Concat(subscriptionData.Select(sd => new SubscriptionStatus
+                    {
+                        ActiveCount = sd.Item2.ActiveMessageCount,
+                        DeadletterCount = sd.Item2.DeadLetterMessageCount,
+                        EntityName = sd.Item1.SubscriptionName,
+                        ShortDisplayName = sd.Item1.ShortName ?? $"{sd.Item1.TopicName}>{sd.Item1.SubscriptionName}",
+                        TopicName = sd.Item1.TopicName
+                    }))
+                    .ToList();
 
                 // check for change of profiles
                 var relevantProfileName = await GetRelevantProfileNameAsync(ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig).ConfigureAwait(false);

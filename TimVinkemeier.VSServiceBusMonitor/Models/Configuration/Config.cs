@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
-namespace TimVinkemeier.VSServiceBusMonitor.Models
+namespace TimVinkemeier.VSServiceBusMonitor.Models.Configuration
 {
     public class Config
     {

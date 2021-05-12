@@ -1,4 +1,4 @@
-﻿namespace TimVinkemeier.VSServiceBusMonitor.Models
+﻿namespace TimVinkemeier.VSServiceBusMonitor.Models.Configuration
 {
     public enum DisplayMode
     {

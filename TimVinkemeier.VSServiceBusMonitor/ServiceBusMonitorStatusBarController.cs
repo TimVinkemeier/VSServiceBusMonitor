@@ -41,7 +41,6 @@ namespace TimVinkemeier.VSServiceBusMonitor
         public async System.Threading.Tasks.Task UpdateStatusBarAsync(bool isActive, string text, string tooltip = default, BackgroundStyle backgroundStyle = default)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var mainThreadId = Thread.CurrentThread.ManagedThreadId;
             _status.IsActive = isActive;
             _status.Text = text;
             _status.ToolTip = tooltip;

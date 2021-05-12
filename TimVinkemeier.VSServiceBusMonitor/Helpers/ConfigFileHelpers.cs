@@ -3,7 +3,7 @@
 using EnvDTE80;
 
 using TimVinkemeier.VSServiceBusMonitor.Extensions;
-using TimVinkemeier.VSServiceBusMonitor.Models;
+using TimVinkemeier.VSServiceBusMonitor.Models.Configuration;
 
 namespace TimVinkemeier.VSServiceBusMonitor.Helpers
 {

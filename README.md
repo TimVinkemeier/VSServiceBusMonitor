@@ -1,13 +1,13 @@
 # Azure ServiceBus Monitor for Visual Studio
 
 Adds a configurable status bar entry to show current runtime stats of monitored Azure ServiceBus entities (queues and subscriptions).
-Currently retrieves and regularly updates the active and deadletter message counts.
+Currently retrieves and regularly updates the active and deadletter message counts and supports purging them.
 
 Download the extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TimVinkemeier.vsservicebusmonitor).
 
 --------------------------------------
 
-## 1 Features
+## 1 Feature Overview
 
 - Monitor Azure ServiceBus queues and topics
 - Show active and deadletter message counts
@@ -15,6 +15,7 @@ Download the extension from the [Visual Studio Marketplace](https://marketplace.
 - Supports multiple profiles within one configuration
 - Configurable to show entities only when a deadletter message is present
 - Switch to alert background on any deadletters (can be turned off)
+- Purge active or deadletter messages
 
 ### 1.1 Status Bar indicator
 
@@ -37,7 +38,7 @@ The configured ServiceBus entities are shown in the status bar with their active
 
 :information_source: The configuration file is located within the `.vs` folder since that is normally ignored from source control. Since the service bus connection string is a sensitive value, keep it secret.
 
-## 3 Feature Examples
+## 3 Feature Details
 
 ### 3.1 Standard monitoring view
 
@@ -75,9 +76,10 @@ The tooltip shows the data for all monitored entities, as well as the currently 
 
 ![Tooltip](images/status-bar-example-tooltip.png)
 
-### 3.4 Context Menu
+### 3.4 Context Menu (Disable, Open Config, Purge Messages)
 
 Via the context menu, you can temporarily pause the polling of data as well as quickly open the current configuration file.
+Additionally, you can purge the messages from a queue or subscription or their respective deadletter queue.
 
 **Context Menu**
 
@@ -86,6 +88,10 @@ Via the context menu, you can temporarily pause the polling of data as well as q
 **Paused View**
 
 ![Paused View](images/status-bar-example-paused.png)
+
+**Purge Messages**
+
+![Purge Messages](images/status-bar-example-contextmenu-purge.png)
 
 ## 4 Configuration
 

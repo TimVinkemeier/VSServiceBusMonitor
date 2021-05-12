@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 using TimVinkemeier.VSServiceBusMonitor.Extensions;
 using TimVinkemeier.VSServiceBusMonitor.Helpers;
-using TimVinkemeier.VSServiceBusMonitor.Models;
+using TimVinkemeier.VSServiceBusMonitor.Models.Configuration;
 
 namespace TimVinkemeier.VSServiceBusMonitor
 {

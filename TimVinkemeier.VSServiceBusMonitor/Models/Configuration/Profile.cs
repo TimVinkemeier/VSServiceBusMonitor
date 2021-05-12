@@ -2,7 +2,7 @@
 
 using Newtonsoft.Json;
 
-namespace TimVinkemeier.VSServiceBusMonitor.Models
+namespace TimVinkemeier.VSServiceBusMonitor.Models.Configuration
 {
     public class Profile
     {
