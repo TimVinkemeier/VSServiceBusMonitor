@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Azure.Messaging.ServiceBus.Administration;
 
@@ -34,24 +35,21 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
         public bool IsEnabled { get; set; } = true;
 
-        public void Initialize(DTE2 dte)
+        public async System.Threading.Tasks.Task InitializeAsync(DTE2 dte)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
             _dte = dte;
 
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged += OnConfigurationChanged;
 
-            DetermineNewWatchedConfiguration();
-            StartServiceBusMonitoring();
+            await DetermineNewWatchedConfigurationAsync().ConfigureAwait(false);
+            await StartServiceBusMonitoringAsync().ConfigureAwait(false);
         }
 
-        public void StopMonitoring()
+        public async System.Threading.Tasks.Task StopMonitoringAsync()
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
             ServiceBusMonitorConfigFileWatcher.Instance.ConfigChanged -= OnConfigurationChanged;
 
-            StopServiceBusMonitoring();
+            await StopServiceBusMonitoringAsync().ConfigureAwait(false);
         }
 
         private static string FormatForDisplay(string displayName, long activeMessageCount, long deadLetterMessageCount)
@@ -91,7 +89,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
             return false;
         }
 
-        private void DetermineNewWatchedConfiguration()
+        private async System.Threading.Tasks.Task DetermineNewWatchedConfigurationAsync()
         {
             try
             {
@@ -99,26 +97,26 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 if (currentConfig is null)
                 {
                     // do not start monitoring if there is no config
-                    Logger.Instance.Log("No configuration found - waiting for config file.");
+                    await Logger.Instance.LogAsync("No configuration found - waiting for config file.").ConfigureAwait(false);
                     _currentlyWatchedProfile = null;
                     return;
                 }
 
                 if ((currentConfig.Profiles?.Count ?? 0) == 0)
                 {
-                    Logger.Instance.Log("No profiles defined.");
+                    await Logger.Instance.LogAsync("No profiles defined.").ConfigureAwait(false);
                     _currentlyWatchedProfile = null;
                     return;
                 }
 
-                Logger.Instance.Log($"Found {currentConfig.Profiles.Count} profiles.");
+                await Logger.Instance.LogAsync($"Found {currentConfig.Profiles.Count} profiles.").ConfigureAwait(false);
 
-                var relevantProfileName = GetRelevantProfileName(currentConfig);
+                var relevantProfileName = await GetRelevantProfileNameAsync(currentConfig).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(relevantProfileName)
                     && currentConfig.Profiles.Count > 1)
                 {
-                    Logger.Instance.Log("No profile selected as active. Please set activeProfileName.");
+                    await Logger.Instance.LogAsync("No profile selected as active. Please set activeProfileName.").ConfigureAwait(false);
                     _currentlyWatchedProfile = null;
                     return;
                 }
@@ -126,7 +124,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 if (string.IsNullOrEmpty(relevantProfileName)
                     && currentConfig.Profiles.Count == 1)
                 {
-                    Logger.Instance.Log($"No profile selected as active - however, there is only one named '{currentConfig.Profiles.Single().Name}' - using that.");
+                    await Logger.Instance.LogAsync($"No profile selected as active - however, there is only one named '{currentConfig.Profiles.Single().Name}' - using that.").ConfigureAwait(false);
                     currentConfig.ActiveProfileName = currentConfig.Profiles.Single().Name;
                     relevantProfileName = currentConfig.ActiveProfileName;
                     ServiceBusMonitorConfigFileWatcher.Instance.SaveUpdatedCurrentConfig();
@@ -137,8 +135,8 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
             catch (Exception ex)
             {
-                Logger.Instance.Log($"Failed to read configuration: {ex.Message}");
-                Logger.Instance.Log(ex.StackTrace);
+                await Logger.Instance.LogAsync($"Failed to read configuration: {ex.Message}").ConfigureAwait(false);
+                await Logger.Instance.LogAsync(ex.StackTrace).ConfigureAwait(false);
                 _currentlyWatchedProfile = null;
             }
         }
@@ -217,32 +215,40 @@ namespace TimVinkemeier.VSServiceBusMonitor
             => currentlyWatchedProfile.Settings?.RefreshIntervalMillis
                 ?? (ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig?.ProfileDefaultSettings?.RefreshIntervalMillis ?? DEFAULT_REFRESH_INTERVAL_MILLIS);
 
-        private string GetRelevantProfileName(Config currentConfig)
-            => _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgBreakMode || _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgRunMode
+        private async Task<string> GetRelevantProfileNameAsync(Config currentConfig)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            return _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgBreakMode || _dte.Application?.Debugger.CurrentMode == dbgDebugMode.dbgRunMode
                 ? (!string.IsNullOrEmpty(currentConfig.DebugProfileName) ? currentConfig.DebugProfileName : currentConfig.ActiveProfileName)
                 : currentConfig.ActiveProfileName;
+        }
 
         private async void OnConfigurationChanged()
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            Logger.Instance.Log("Configuration was updated - refreshing...");
-            StopServiceBusMonitoring();
-            DetermineNewWatchedConfiguration();
-            StartServiceBusMonitoring();
+            try
+            {
+                await Logger.Instance.LogAsync("Configuration was updated - refreshing...").ConfigureAwait(false);
+                await StopServiceBusMonitoringAsync().ConfigureAwait(false);
+                await DetermineNewWatchedConfigurationAsync().ConfigureAwait(false);
+                await StartServiceBusMonitoringAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // not sure what to do here, so we just continue
+            }
         }
 
-        private void StartServiceBusMonitoring()
+        private async System.Threading.Tasks.Task StartServiceBusMonitoringAsync()
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
             if (_currentlyWatchedProfile is null)
             {
-                ServiceBusMonitorStatusBarController.Instance?.UpdateStatusBar(false, "No configuration", "Service Bus monitor\r\nNo configuration found.");
+                ServiceBusMonitorStatusBarController.Instance?.UpdateStatusBarAsync(false, "No configuration", "Service Bus monitor\r\nNo configuration found.");
                 return;
             }
 
             try
             {
-                Logger.Instance.Log($"Starting monitoring of profile '{_currentlyWatchedProfile.Name}'...");
+                await Logger.Instance.LogAsync($"Starting monitoring of profile '{_currentlyWatchedProfile.Name}'...").ConfigureAwait(false);
                 if (_timer is null)
                 {
                     _timer = new Timer(_ => UpdateServiceBusData());
@@ -254,15 +260,14 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
             catch (Exception ex)
             {
-                Logger.Instance.Log($"Failed to start monitoring: {ex.Message}");
-                Logger.Instance.Log(ex.StackTrace);
-                StopServiceBusMonitoring();
+                await Logger.Instance.LogAsync($"Failed to start monitoring: {ex.Message}").ConfigureAwait(false);
+                await Logger.Instance.LogAsync(ex.StackTrace).ConfigureAwait(false);
+                await StopServiceBusMonitoringAsync().ConfigureAwait(false);
             }
         }
 
-        private void StopServiceBusMonitoring()
+        private async System.Threading.Tasks.Task StopServiceBusMonitoringAsync()
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
             if (_serviceBusClient is null)
             {
                 return;
@@ -273,7 +278,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 _timer.Change(-1, -1);
             }
             _serviceBusClient = null;
-            Logger.Instance.Log("Stopped monitoring.");
+            await Logger.Instance.LogAsync("Stopped monitoring.").ConfigureAwait(false);
         }
 
         private async void UpdateServiceBusData()
@@ -283,53 +288,57 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 return;
             }
 
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var updateTime = DateTime.Now;
             var profile = _currentlyWatchedProfile;
             try
             {
                 if (!IsEnabled)
                 {
-                    ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(false, "Paused", "VS ServiceBus Monitor is paused\r\n\r\nRe-activate it via the context menu.", BackgroundStyle.Normal);
+                    await ServiceBusMonitorStatusBarController.Instance.UpdateStatusBarAsync(false, "Paused", "VS ServiceBus Monitor is paused\r\n\r\nRe-activate it via the context menu.", BackgroundStyle.Normal).ConfigureAwait(false);
                     return;
                 }
 
                 var queuesData = new List<(QueueDefinition, QueueRuntimeProperties)>();
                 var subscriptionData = new List<(SubscriptionDefinition, SubscriptionRuntimeProperties)>();
-                foreach (var queueDefinition in profile.Queues ?? Enumerable.Empty<QueueDefinition>())
-                {
-                    var data = await _serviceBusClient
-                        .GetQueueRuntimePropertiesAsync(queueDefinition.QueueName)
-                        .ConfigureAwait(true);
-                    queuesData.Add((queueDefinition, data));
-                }
 
-                foreach (var subscriptionDefinition in profile.Subscriptions ?? Enumerable.Empty<SubscriptionDefinition>())
+                await System.Threading.Tasks.Task.Run(async () =>
                 {
-                    var data = await _serviceBusClient
-                        .GetSubscriptionRuntimePropertiesAsync(subscriptionDefinition.TopicName, subscriptionDefinition.SubscriptionName)
-                        .ConfigureAwait(true);
-                    subscriptionData.Add((subscriptionDefinition, data));
-                }
+                    var updateThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                    foreach (var queueDefinition in profile.Queues ?? Enumerable.Empty<QueueDefinition>())
+                    {
+                        var data = await _serviceBusClient
+                            .GetQueueRuntimePropertiesAsync(queueDefinition.QueueName)
+                            .ConfigureAwait(true);
+                        queuesData.Add((queueDefinition, data));
+                    }
+
+                    foreach (var subscriptionDefinition in profile.Subscriptions ?? Enumerable.Empty<SubscriptionDefinition>())
+                    {
+                        var data = await _serviceBusClient
+                            .GetSubscriptionRuntimePropertiesAsync(subscriptionDefinition.TopicName, subscriptionDefinition.SubscriptionName)
+                            .ConfigureAwait(true);
+                        subscriptionData.Add((subscriptionDefinition, data));
+                    }
+                }).ConfigureAwait(false);
 
                 var (text, tooltip, isActive, backgroundStyle) = FormatForDisplay(queuesData, subscriptionData, profile, updateTime);
-                ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(isActive, text, tooltip, backgroundStyle);
+                await ServiceBusMonitorStatusBarController.Instance.UpdateStatusBarAsync(isActive, text, tooltip, backgroundStyle).ConfigureAwait(false);
 
                 // check for change of profiles
-                var relevantProfileName = GetRelevantProfileName(ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig);
+                var relevantProfileName = await GetRelevantProfileNameAsync(ServiceBusMonitorConfigFileWatcher.Instance.CurrentConfig).ConfigureAwait(false);
                 if (_currentlyWatchedProfile.Name != relevantProfileName)
                 {
-                    Logger.Instance.Log($"Relevant profile changed to '{relevantProfileName}' - switching...");
-                    StopServiceBusMonitoring();
-                    DetermineNewWatchedConfiguration();
-                    StartServiceBusMonitoring();
+                    await Logger.Instance.LogAsync($"Relevant profile changed to '{relevantProfileName}' - switching...").ConfigureAwait(false);
+                    await StopServiceBusMonitoringAsync().ConfigureAwait(false);
+                    await DetermineNewWatchedConfigurationAsync().ConfigureAwait(false);
+                    await StartServiceBusMonitoringAsync().ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
-                Logger.Instance.Log($"Failed to update: {ex.Message}");
-                Logger.Instance.Log(ex.StackTrace);
-                ServiceBusMonitorStatusBarController.Instance.UpdateStatusBar(false, "N/A", $"Service Bus Monitor\r\nActive Profile: {profile.Name}\r\n\r\nUpdate failed. ({updateTime:G})");
+                await Logger.Instance.LogAsync($"Failed to update: {ex.Message}").ConfigureAwait(false);
+                await Logger.Instance.LogAsync(ex.StackTrace).ConfigureAwait(false);
+                await ServiceBusMonitorStatusBarController.Instance.UpdateStatusBarAsync(false, "N/A", $"Service Bus Monitor\r\nActive Profile: {profile.Name}\r\n\r\nUpdate failed. ({updateTime:G})").ConfigureAwait(false);
             }
         }
     }

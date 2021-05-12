@@ -40,7 +40,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
             ThreadHelper.ThrowIfNotOnUIThread();
             var path = ConfigFileHelpers.CreateConfigFileIfNotExists(_solution);
             VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, path);
-            Logger.Instance.Log($"New configuration file created at '{path}'.");
+            Logger.Instance.LogAsync($"New configuration file created at '{path}'.");
         }
 
         public void CloseInfoBar()
@@ -79,7 +79,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            Logger.Instance.Log("Solution opened, but no config file found - showing info bar.");
+            Logger.Instance.LogAsync("Solution opened, but no config file found - showing info bar.");
             if (_isVisible || !await TryCreateInfoBarUIAsync(_infoBarModel))
             {
                 return;

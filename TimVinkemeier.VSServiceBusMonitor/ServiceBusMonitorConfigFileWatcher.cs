@@ -41,8 +41,8 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
             catch (Exception ex)
             {
-                Logger.Instance.Log($"Failed to load config: {ex.Message}");
-                Logger.Instance.Log(ex.StackTrace);
+                Logger.Instance.LogAsync($"Failed to load config: {ex.Message}");
+                Logger.Instance.LogAsync(ex.StackTrace);
             }
 
             var dotVsFolderPath = solution.GetDotVsFolder();
@@ -92,8 +92,8 @@ namespace TimVinkemeier.VSServiceBusMonitor
             }
             catch (Exception ex)
             {
-                Logger.Instance.Log($"Failed to refresh config: {ex.Message}");
-                Logger.Instance.Log(ex.StackTrace);
+                Logger.Instance.LogAsync($"Failed to refresh config: {ex.Message}");
+                Logger.Instance.LogAsync(ex.StackTrace);
             }
         }
     }

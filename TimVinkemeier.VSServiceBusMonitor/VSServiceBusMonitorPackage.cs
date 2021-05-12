@@ -107,7 +107,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 }
                 catch (Exception ex)
                 {
-                    Logger.Instance.Log(ex);
+                    Logger.Instance.LogAsync(ex);
                 }
             }
 
@@ -127,14 +127,14 @@ namespace TimVinkemeier.VSServiceBusMonitor
             ServiceBusMonitorConfigFileWatcher.Instance.Initialize(dte.Solution as Solution2);
 
             // service bus watching
-            ServiceBusMonitor.Instance.Initialize(dte as DTE2);
+            ServiceBusMonitor.Instance.InitializeAsync(dte as DTE2);
         }
 
         private async Task StopSolutionHandlingAsync(CancellationToken cancellationToken)
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             ServiceBusMonitorConfigFileWatcher.Instance.StopWatching();
-            ServiceBusMonitor.Instance.StopMonitoring();
+            ServiceBusMonitor.Instance.StopMonitoringAsync();
             _loader?.CloseInfoBar();
         }
     }

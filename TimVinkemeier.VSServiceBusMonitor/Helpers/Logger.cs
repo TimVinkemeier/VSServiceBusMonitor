@@ -17,16 +17,15 @@ namespace TimVinkemeier.VSServiceBusMonitor.Helpers
 
         internal static Logger Instance { get; private set; }
 
-        public void Log(object message)
+        public async System.Threading.Tasks.Task LogAsync(object message)
         {
             try
             {
-#pragma warning disable VSTHRD010 // Invoke single-threaded types on Main thread
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 if (EnsurePane())
                 {
                     _pane.OutputString($"{DateTime.Now}: {message}{Environment.NewLine}");
                 }
-#pragma warning restore VSTHRD010 // Invoke single-threaded types on Main thread
             }
             catch (Exception ex)
             {
