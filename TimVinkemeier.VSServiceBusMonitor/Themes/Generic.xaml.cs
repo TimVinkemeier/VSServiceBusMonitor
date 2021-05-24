@@ -16,12 +16,9 @@ namespace TimVinkemeier.VSServiceBusMonitor.Themes
             // Enabled switch
             var enabledMenuItem = new MenuItem
             {
-                Header = "_Enabled",
-                IsCheckable = true,
-                IsChecked = true
+                Header = ServiceBusMonitor.Instance.IsEnabled ? "_Pause Monitoring" : "_Resume Monitoring",
             };
-            enabledMenuItem.Checked += ToggleActivity_Checked;
-            enabledMenuItem.Unchecked += ToggleActivity_Unchecked;
+            enabledMenuItem.Click += ToggleEnabledStatus;
             contextMenu.Items.Add(enabledMenuItem);
 
             // Separator
@@ -96,18 +93,9 @@ namespace TimVinkemeier.VSServiceBusMonitor.Themes
         }
 
         private async void PurgeFromServiceBusEntity(ServiceBusEntityStatus status, object sender, RoutedEventArgs args, bool purgeDlqInsteadOfMessages)
-        {
-            await ServiceBusMonitor.Instance.PurgeServiceBusEntityAsync(status.EntityName, purgeDlqInsteadOfMessages, status is SubscriptionStatus sbs ? sbs.TopicName : null);
-        }
+            => await ServiceBusMonitor.Instance.PurgeServiceBusEntityAsync(status.EntityName, purgeDlqInsteadOfMessages, status is SubscriptionStatus sbs ? sbs.TopicName : null).ConfigureAwait(false);
 
-        private void ToggleActivity_Checked(object sender, RoutedEventArgs e)
-        {
-            ServiceBusMonitor.Instance.IsEnabled = true;
-        }
-
-        private void ToggleActivity_Unchecked(object sender, RoutedEventArgs e)
-        {
-            ServiceBusMonitor.Instance.IsEnabled = false;
-        }
+        private void ToggleEnabledStatus(object sender, RoutedEventArgs e)
+            => ServiceBusMonitor.Instance.IsEnabled = !ServiceBusMonitor.Instance.IsEnabled;
     }
 }
