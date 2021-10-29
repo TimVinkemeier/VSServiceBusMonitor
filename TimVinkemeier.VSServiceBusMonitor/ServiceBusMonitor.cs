@@ -427,22 +427,36 @@ namespace TimVinkemeier.VSServiceBusMonitor
                 var queuesData = new List<(QueueDefinition, QueueRuntimeProperties)>();
                 var subscriptionData = new List<(SubscriptionDefinition, SubscriptionRuntimeProperties)>();
 
-                await System.Threading.Tasks.Task.Run(async () =>
+                await Task.Run(async () =>
                 {
                     foreach (var queueDefinition in profile.Queues ?? Enumerable.Empty<QueueDefinition>())
                     {
-                        var data = await _serviceBusClient
-                            .GetQueueRuntimePropertiesAsync(queueDefinition.QueueName)
-                            .ConfigureAwait(true);
-                        queuesData.Add((queueDefinition, data));
+                        try
+                        {
+                            var data = await _serviceBusClient
+                                .GetQueueRuntimePropertiesAsync(queueDefinition.QueueName)
+                                .ConfigureAwait(true);
+                            queuesData.Add((queueDefinition, data));
+                        }
+                        catch (Exception ex)
+                        {
+                            await Logger.Instance.LogAsync($"Could not update info for queue '{queueDefinition.QueueName}': {ex.Message}").ConfigureAwait(false);
+                        }
                     }
 
                     foreach (var subscriptionDefinition in profile.Subscriptions ?? Enumerable.Empty<SubscriptionDefinition>())
                     {
-                        var data = await _serviceBusClient
+                        try
+                        {
+                            var data = await _serviceBusClient
                             .GetSubscriptionRuntimePropertiesAsync(subscriptionDefinition.TopicName, subscriptionDefinition.SubscriptionName)
                             .ConfigureAwait(true);
-                        subscriptionData.Add((subscriptionDefinition, data));
+                            subscriptionData.Add((subscriptionDefinition, data));
+                        }
+                        catch (Exception ex)
+                        {
+                            await Logger.Instance.LogAsync($"Could not update info for subscription '{subscriptionDefinition.TopicName}>{subscriptionDefinition.SubscriptionName}': {ex.Message}").ConfigureAwait(false);
+                        }
                     }
                 }).ConfigureAwait(false);
 

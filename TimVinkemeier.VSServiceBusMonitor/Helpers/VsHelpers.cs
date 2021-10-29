@@ -19,7 +19,7 @@ namespace TimVinkemeier.VSServiceBusMonitor.Helpers
             ThreadHelper.ThrowIfNotOnUIThread();
             try
             {
-                Command command = commands.Item(commandName);
+                var command = commands.Item(commandName);
 
                 if (command != null && command.IsAvailable)
                 {
@@ -37,7 +37,7 @@ namespace TimVinkemeier.VSServiceBusMonitor.Helpers
 
         public static string GetFileInVsix(string relativePath)
         {
-            string folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             return Path.Combine(folder, relativePath);
         }
 
@@ -65,6 +65,6 @@ namespace TimVinkemeier.VSServiceBusMonitor.Helpers
             => provider.GetServiceAsync<DTE, DTE2>(cancellationToken);
 
         internal static async Task<TReturnType> GetServiceAsync<TServiceType, TReturnType>(this IAsyncServiceProvider provider, CancellationToken cancellationToken)
-            => (TReturnType)await provider.GetServiceAsync(typeof(TServiceType));
+            => (TReturnType)await provider.GetServiceAsync(typeof(TServiceType)).ConfigureAwait(true);
     }
 }

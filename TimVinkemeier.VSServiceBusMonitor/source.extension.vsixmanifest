@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="TimVinkemeier.VSServiceBusMonitor.749e3b61-2640-4a87-9315-fb491638230a" Version="1.4" Language="en-US" Publisher="Tim Vinkemeier" />
-        <DisplayName>Azure ServiceBus Monitor for Visual Studio</DisplayName>
+        <Identity Id="TimVinkemeier.VSServiceBusMonitor.749e3b61-2640-4a87-9315-fb491638230b" Version="2.0" Language="en-US" Publisher="Tim Vinkemeier" />
+        <DisplayName>Azure ServiceBus Monitor for Visual Studio 2022</DisplayName>
         <Description xml:space="preserve">Status Bar extension for monitoring Azure Service Bus Entity stats in the Visual Studio status bar.</Description>
         <MoreInfo>https://github.com/TimVinkemeier/VSServiceBusMonitor</MoreInfo>
         <GettingStartedGuide>https://github.com/TimVinkemeier/VSServiceBusMonitor/blob/master/README.md</GettingStartedGuide>
     </Metadata>
     <Installation>
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[16.0, 17.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
     </Dependencies>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[16.0,17.0)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
     </Prerequisites>
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />

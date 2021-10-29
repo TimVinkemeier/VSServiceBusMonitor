@@ -57,21 +57,21 @@ namespace TimVinkemeier.VSServiceBusMonitor
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            Logger.Initialize(await GetServiceAsync(typeof(SVsOutputWindow)) as IVsOutputWindow);
+            Logger.Initialize(await GetServiceAsync(typeof(SVsOutputWindow)).ConfigureAwait(true) as IVsOutputWindow);
 
             // Since this package might not be initialized until after a solution has finished loading,
             // we need to check if a solution has already been loaded and then handle it.
-            var isSolutionLoaded = await IsSolutionLoadedAsync();
+            var isSolutionLoaded = await IsSolutionLoadedAsync().ConfigureAwait(true);
 
             if (isSolutionLoaded)
             {
-                await StartSolutionHandlingAsync(cancellationToken);
+                await StartSolutionHandlingAsync(cancellationToken).ConfigureAwait(true);
             }
 
             // Listen for subsequent solution events
             Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterBackgroundSolutionLoadComplete += async delegate
             {
-                await StartSolutionHandlingAsync(cancellationToken);
+                await StartSolutionHandlingAsync(cancellationToken).ConfigureAwait(true);
             };
 
             Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterCloseSolution += delegate
@@ -80,14 +80,14 @@ namespace TimVinkemeier.VSServiceBusMonitor
             };
 
             RegisterStatusBarControllerInitialization(cancellationToken);
-            await base.InitializeAsync(cancellationToken, progress);
+            await base.InitializeAsync(cancellationToken, progress).ConfigureAwait(true);
         }
 
         // see https://github.com/madskristensen/CodeTourVS/blob/master/src/CodeTourVSPackage.cs
         private async Task<bool> IsSolutionLoadedAsync()
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync();
-            var solutionService = await GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
+            var solutionService = await GetServiceAsync(typeof(SVsSolution)).ConfigureAwait(true) as IVsSolution;
             Assumes.Present(solutionService);
 
             ErrorHandler.ThrowOnFailure(solutionService.GetProperty((int)__VSPROPID.VSPROPID_IsSolutionOpen, out var value));
@@ -101,9 +101,9 @@ namespace TimVinkemeier.VSServiceBusMonitor
             {
                 try
                 {
-                    var serviceProvider = await GetServiceAsync(typeof(SAsyncServiceProvider)) as Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
+                    var serviceProvider = await GetServiceAsync(typeof(SAsyncServiceProvider)).ConfigureAwait(true) as Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 
-                    await ServiceBusMonitorStatusBarController.InitializeAsync(serviceProvider, cancellationToken);
+                    await ServiceBusMonitorStatusBarController.InitializeAsync(serviceProvider, cancellationToken).ConfigureAwait(true);
                 }
                 catch (Exception ex)
                 {
@@ -117,11 +117,11 @@ namespace TimVinkemeier.VSServiceBusMonitor
         private async Task StartSolutionHandlingAsync(CancellationToken cancellationToken)
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            var dte = await GetServiceAsync(typeof(DTE)) as DTE;
+            var dte = await GetServiceAsync(typeof(DTE)).ConfigureAwait(true) as DTE;
 
             // info bar
             var _loader = new ServiceBusMonitorInfoBar(dte.Solution as Solution2);
-            await _loader.HandleOpenSolutionAsync();
+            await _loader.HandleOpenSolutionAsync().ConfigureAwait(true);
 
             // config file watching
             ServiceBusMonitorConfigFileWatcher.Instance.Initialize(dte.Solution as Solution2);

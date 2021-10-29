@@ -58,7 +58,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
 
             if (!ConfigFileHelpers.ConfigFileExists(_solution))
             {
-                await ShowInfoBarAsync();
+                await ShowInfoBarAsync().ConfigureAwait(true);
             }
         }
 
@@ -80,7 +80,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             Logger.Instance.LogAsync("Solution opened, but no config file found - showing info bar.");
-            if (_isVisible || !await TryCreateInfoBarUIAsync(_infoBarModel))
+            if (_isVisible || !await TryCreateInfoBarUIAsync(_infoBarModel).ConfigureAwait(true))
             {
                 return;
             }
@@ -117,7 +117,7 @@ namespace TimVinkemeier.VSServiceBusMonitor
         private async Task<bool> TryCreateInfoBarUIAsync(IVsInfoBar infoBar)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var infoBarUIFactory = await AsyncServiceProvider.GlobalProvider.GetServiceAsync<SVsInfoBarUIFactory, IVsInfoBarUIFactory>();
+            var infoBarUIFactory = await AsyncServiceProvider.GlobalProvider.GetServiceAsync<SVsInfoBarUIFactory, IVsInfoBarUIFactory>().ConfigureAwait(true);
 
             _uiElement = infoBarUIFactory.CreateInfoBar(infoBar);
             return _uiElement != null;
