@@ -1,9 +1,9 @@
-# Azure ServiceBus Monitor for Visual Studio
+# Azure ServiceBus Monitor for Visual Studio 2019/2022
 
 Adds a configurable status bar entry to show current runtime stats of monitored Azure ServiceBus entities (queues and subscriptions).
 Currently retrieves and regularly updates the active and deadletter message counts and supports purging them.
 
-Download the extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TimVinkemeier.vsservicebusmonitor).
+Download the extension from the Visual Studio Marketplace for [Visual Studio 2019](https://marketplace.visualstudio.com/items?itemName=TimVinkemeier.vsservicebusmonitor) and [Visual Studio 2022](https://marketplace.visualstudio.com/items?itemName=TimVinkemeier.vsservicebusmonitor2022).
 
 --------------------------------------
 
